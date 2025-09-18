@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HCISD Sora Catalog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg-gradient: radial-gradient(circle at 20% 20%, #eef3ff, transparent 60%),
+                      radial-gradient(circle at 80% 0%, #fde8ff, transparent 55%),
+                      linear-gradient(180deg, #f7f9fc, #f0f4ff);
+      --card-bg: rgba(255, 255, 255, 0.72);
+      --card-border: rgba(65, 80, 162, 0.08);
+      --shadow-soft: 0 18px 40px rgba(48, 69, 141, 0.12);
+      --accent: #4150a2;
+      --accent-soft: rgba(65, 80, 162, 0.12);
+      --accent-strong: #27306c;
+      --text-main: #182048;
+      --text-subtle: #4d5682;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      padding: clamp(1.5rem, 4vw, 3rem);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(1.5rem, 3vw, 2.5rem);
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-width: 900px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    p.subtitle {
+      margin: 0;
+      font-size: clamp(1rem, 2vw, 1.15rem);
+      color: var(--text-subtle);
+      max-width: 60ch;
+      line-height: 1.5;
+    }
+
+    .controls {
+      backdrop-filter: blur(18px);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: clamp(1rem, 3vw, 1.75rem);
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: clamp(0.75rem, 2vw, 1.4rem);
+      align-items: end;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent-strong);
+      text-transform: uppercase;
+      letter-spacing: 0.045em;
+    }
+
+    input, select {
+      border-radius: 14px;
+      border: 1px solid rgba(65, 80, 162, 0.18);
+      padding: 0.75rem 1rem;
+      font: inherit;
+      background-color: white;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    #statusBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      color: var(--text-subtle);
+    }
+
+    #statusBar strong {
+      color: var(--accent-strong);
+    }
+
+    #catalogGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: clamp(1rem, 3vw, 1.75rem);
+      align-items: stretch;
+    }
+
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      padding: clamp(1rem, 3vw, 1.4rem);
+      backdrop-filter: blur(14px);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      box-shadow: var(--shadow-soft);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 45px rgba(48, 69, 141, 0.18);
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin: 0;
+      color: var(--accent-strong);
+      line-height: 1.35;
+    }
+
+    .card .meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      font-size: 0.95rem;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .badge {
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      background: rgba(65, 80, 162, 0.12);
+      color: var(--accent-strong);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .empty-state {
+      margin: 4rem auto;
+      max-width: 520px;
+      text-align: center;
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.75);
+      border-radius: 20px;
+      border: 1px dashed rgba(65, 80, 162, 0.18);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .empty-state h3 {
+      margin-top: 0;
+      font-size: 1.35rem;
+    }
+
+    footer {
+      margin-top: auto;
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+      text-align: center;
+    }
+
+    @media (max-width: 540px) {
+      header {
+        text-align: center;
+        align-items: center;
+      }
+
+      #statusBar {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>HCISD Sora Catalog</h1>
+    <p class="subtitle">Browse the latest titles available to our community. Search by title, creator, series, ISBN, or use the filters to explore by language and access level.</p>
+  </header>
+
+  <section class="controls" aria-label="Catalog filters">
+    <label for="searchInput">
+      Search catalog
+      <input id="searchInput" type="search" placeholder="Try 'Graphic novel' or an ISBN…" autocomplete="off" />
+    </label>
+
+    <label for="languageFilter">
+      Language
+      <select id="languageFilter" data-default="All languages">
+        <option value="">All languages</option>
+      </select>
+    </label>
+
+    <label for="accessFilter">
+      Access level
+      <select id="accessFilter" data-default="All levels">
+        <option value="">All levels</option>
+      </select>
+    </label>
+  </section>
+
+  <div id="statusBar" role="status" aria-live="polite">
+    <span id="resultCount">Loading titles…</span>
+    <span id="lastUpdated"></span>
+  </div>
+
+  <main id="catalogGrid" aria-live="polite" aria-busy="true"></main>
+
+  <template id="cardTemplate">
+    <article class="card" tabindex="0">
+      <h2 data-field="Title"></h2>
+      <div class="meta">
+        <div class="creator" data-field="Creator"></div>
+        <div class="series" data-field="Series"></div>
+        <div class="isbn" data-field="ISBN"></div>
+      </div>
+      <div class="badge-row">
+        <span class="badge" data-field="Language"></span>
+        <span class="badge" data-field="Content access levels"></span>
+        <span class="badge" data-field="Subscription"></span>
+      </div>
+    </article>
+  </template>
+
+  <footer>
+    Data refreshes with each repo update. Update <code>HCISD Title List.csv</code> and push to GitHub to publish new titles.
+  </footer>
+
+  <script>
+    const CSV_URL = 'https://raw.githubusercontent.com/DoggyDog2020/HCISD-Sora/main/HCISD%20Title%20List.csv';
+    const searchInput = document.getElementById('searchInput');
+    const languageFilter = document.getElementById('languageFilter');
+    const accessFilter = document.getElementById('accessFilter');
+    const catalogGrid = document.getElementById('catalogGrid');
+    const cardTemplate = document.getElementById('cardTemplate');
+    const resultCount = document.getElementById('resultCount');
+    const lastUpdated = document.getElementById('lastUpdated');
+
+    const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+    let rows = [];
+
+    function init() {
+      fetchCatalog();
+      attachListeners();
+    }
+
+    function attachListeners() {
+      const handleInput = () => render(filterRows());
+      searchInput.addEventListener('input', debounce(handleInput, 150));
+      languageFilter.addEventListener('change', handleInput);
+      accessFilter.addEventListener('change', handleInput);
+    }
+
+    function fetchCatalog() {
+      fetch(`${CSV_URL}?cacheBust=${Date.now()}`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Fetch failed with status ${response.status}`);
+          }
+          const lastModified = response.headers.get('last-modified');
+          if (lastModified) {
+            lastUpdated.textContent = `Last updated: ${new Date(lastModified).toLocaleString()}`;
+          }
+          return response.text();
+        })
+        .then((csvText) => {
+          const parsed = Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: 'greedy',
+            transformHeader: (header) => header.replace(/^\ufeff/, '').trim(),
+          });
+
+          if (parsed.errors.length) {
+            console.error(parsed.errors);
+            throw new Error('Unable to read catalog data. Check the CSV format.');
+          }
+
+          rows = parsed.data
+            .map((row) => normalizeRow(row))
+            .filter((row) => row.Title);
+
+          populateFilters(rows);
+          render(rows);
+        })
+        .catch((err) => {
+          console.error(err);
+          catalogGrid.innerHTML = createEmptyState('We hit a snag loading the catalog. Please refresh or try again later.');
+          resultCount.textContent = 'No titles to show';
+          lastUpdated.textContent = '';
+        })
+        .finally(() => {
+          catalogGrid.setAttribute('aria-busy', 'false');
+        });
+    }
+
+    function normalizeRow(row) {
+      const clean = {};
+      for (const key of Object.keys(row)) {
+        clean[key] = typeof row[key] === 'string' ? row[key].trim() : row[key];
+      }
+      clean.SearchIndex = [clean.Title, clean.Creator, clean.Series, clean.ISBN].join(' ').toLowerCase();
+      return clean;
+    }
+
+    function populateFilters(data) {
+      const languages = new Set();
+      const accessLevels = new Set();
+
+      data.forEach((row) => {
+        if (row.Language) languages.add(row.Language);
+        if (row['Content access levels']) accessLevels.add(row['Content access levels']);
+      });
+
+      setOptions(languageFilter, languages);
+      setOptions(accessFilter, accessLevels);
+    }
+
+    function setOptions(selectEl, values) {
+      const sorted = Array.from(values).sort((a, b) => collator.compare(a, b));
+      const defaultLabel = selectEl.dataset.default || 'All';
+      selectEl.innerHTML = `<option value="">${defaultLabel}</option>` +
+        sorted.map((value) => `<option value="${value}">${value}</option>`).join('');
+    }
+
+    function filterRows() {
+      const query = searchInput.value.trim().toLowerCase();
+      const language = languageFilter.value;
+      const access = accessFilter.value;
+
+      return rows.filter((row) => {
+        const matchQuery = query ? row.SearchIndex.includes(query) : true;
+        const matchLanguage = language ? row.Language === language : true;
+        const matchAccess = access ? row['Content access levels'] === access : true;
+        return matchQuery && matchLanguage && matchAccess;
+      }).sort((a, b) => collator.compare(a.Title, b.Title));
+    }
+
+    function render(data) {
+      if (!data.length) {
+        catalogGrid.innerHTML = createEmptyState('No titles match your filters just yet. Try adjusting your search.');
+        resultCount.innerHTML = '<strong>0</strong> titles';
+        return;
+      }
+
+      const fragments = document.createDocumentFragment();
+      data.forEach((row) => {
+        const card = cardTemplate.content.cloneNode(true);
+        card.querySelector('[data-field="Title"]').textContent = row.Title;
+        card.querySelector('[data-field="Creator"]').textContent = row.Creator ? `By ${row.Creator}` : 'Creator unknown';
+        const seriesEl = card.querySelector('[data-field="Series"]');
+        seriesEl.textContent = row.Series ? `Series: ${row.Series}` : '';
+        seriesEl.style.display = row.Series ? 'block' : 'none';
+        card.querySelector('[data-field="ISBN"]').textContent = row.ISBN ? `ISBN: ${row.ISBN}` : '';
+        card.querySelector('[data-field="Language"]').textContent = row.Language || '–';
+        card.querySelector('[data-field="Content access levels"]').textContent = row['Content access levels'] || '–';
+        card.querySelector('[data-field="Subscription"]').textContent = row.Subscription === 'Yes' ? 'Subscription' : 'Owned';
+        fragments.appendChild(card);
+      });
+
+      catalogGrid.innerHTML = '';
+      catalogGrid.appendChild(fragments);
+      resultCount.innerHTML = `<strong>${data.length}</strong> ${data.length === 1 ? 'title' : 'titles'}`;
+    }
+
+    function createEmptyState(message) {
+      return `
+        <div class="empty-state">
+          <h3>Nothing here yet</h3>
+          <p>${message}</p>
+        </div>
+      `;
+    }
+
+    function debounce(fn, delay) {
+      let timer = null;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(null, args), delay);
+      };
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
