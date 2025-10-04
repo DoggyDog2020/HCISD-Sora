@@ -29,6 +29,7 @@
     }
 
     body {
+      position: relative;
       margin: 0;
       min-height: 100vh;
       font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -41,17 +42,47 @@
     }
 
     header {
+      position: relative;
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
+      gap: 0.9rem;
       max-width: 900px;
     }
 
     h1 {
-      font-size: clamp(2rem, 4vw, 2.8rem);
+      font-size: clamp(2.4rem, 5vw, 3.2rem);
       font-weight: 700;
       letter-spacing: -0.02em;
       margin: 0;
+      color: var(--accent-strong);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .kicker {
+      margin: 0;
+      font-size: clamp(1rem, 2.4vw, 1.2rem);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .header-logo {
+      position: absolute;
+      top: clamp(1.5rem, 4vw, 3rem);
+      right: clamp(1.5rem, 4vw, 3rem);
+      width: clamp(83.32px, 17.46vw, 133.31px);
+      height: auto;
     }
 
     p.subtitle {
@@ -196,9 +227,8 @@
     }
 
     @media (max-width: 540px) {
-      header {
-        text-align: center;
-        align-items: center;
+      .header-logo {
+        width: clamp(67.45px, 20.63vw, 103.16px);
       }
 
       #statusBar {
@@ -208,8 +238,15 @@
   </style>
 </head>
 <body>
+  <img class="header-logo" src="c65a9b92-42ab-4309-a16b-510c67fdbce8.png" alt="HCISD Sora logo" />
+
   <header>
-    <h1>HCISD Sora Catalog</h1>
+    <div class="header-top">
+      <div class="title-group">
+        <h1>SORA Catalog</h1>
+        <p class="kicker">Library Services &amp; Innovative Practices</p>
+      </div>
+    </div>
     <p class="subtitle">Browse the latest titles available to our community. Search by title, creator, series, ISBN, or use the filters to explore by language and access level.</p>
   </header>
 
@@ -256,10 +293,6 @@
       </div>
     </article>
   </template>
-
-  <footer>
-    Data refreshes with each repo update. Update <code>HCISD Title List.csv</code> and push to GitHub to publish new titles.
-  </footer>
 
   <script>
     const CSV_URL = 'https://raw.githubusercontent.com/DoggyDog2020/HCISD-Sora/main/HCISD%20Title%20List.csv';
@@ -312,7 +345,7 @@
 
           rows = parsed.data
             .map((row) => normalizeRow(row))
-            .filter((row) => row.Title);
+            .filter((row) => row.Title && isStudentAccessible(row));
 
           populateFilters(rows);
           render(rows);
@@ -335,6 +368,14 @@
       }
       clean.SearchIndex = [clean.Title, clean.Creator, clean.Series, clean.ISBN].join(' ').toLowerCase();
       return clean;
+    }
+
+    function isStudentAccessible(row) {
+      const access = (row['Content access levels'] || '').toLowerCase();
+      if (!access) return true;
+      if (access.includes('young adult') || access.includes('juvenile')) return true;
+      if (access.includes('adult')) return false;
+      return true;
     }
 
     function populateFilters(data) {
